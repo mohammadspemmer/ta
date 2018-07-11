@@ -1,0 +1,41 @@
+
+#!/usr/bin/env bash
+
+cd $HOME/JoveTab
+token="TOKEN"
+function logo_play() {
+    declare -A txtlogo
+    seconds="0.010"
+	txtlogo[1]="-----------------------------"
+    txtlogo[2]="|     _  BY @ByeCoder  ____ |"
+    txtlogo[3]="|    | |  ___ __    __| ___||"
+    txtlogo[4]="|__  | | / _ \\ \  / /| |__ |"
+    txtlogo[5]="|\ \/ / | |_| |\ \/ / | |__ |"
+	txtlogo[6]="| \__/   \___/  \__/  |____||"
+	txtlogo[7]="-----------------------------"
+    printf "\e[31m\t"
+    for i in ${!txtlogo[@]}; do
+        for x in `seq 0 ${#txtlogo[$i]}`; do
+            printf "${txtlogo[$i]:$x:1}"
+            sleep $seconds
+        done
+        printf "\n\t"
+    done
+    printf "\n"
+	echo -e "\e[0m"
+}
+
+
+if [ ! -f ./tg ]; then
+    echo "tg not found"
+    echo "Run $0 install"
+    exit 1
+ fi
+if [ ! $token ]; then
+  echo -e "\e[1;36mToken Not found\e[0m"
+ exit 1
+ fi
+
+logo_play
+curl "https://api.telegram.org/bot[TOKEN]/sendmessage" -F "chat_id=-" -F "text= JOVETAB IS NOW RUNNING "
+./tg -s ./bot/api.lua -p PROFILE --bot=$token

@@ -1,0 +1,293 @@
+#!/usr/bin/env bash
+
+THIS_DIR=$(cd $(dirname $0); pwd)
+cd $THIS_DIR
+
+token="TOKEN"
+
+install() {
+green "
+(درحال به روزرسانی پکیج های نصب شده)"
+sudo apt-get update
+sudo apt-get upgrade
+sudo apt-get dist-upgrade
+red "
+(درحال نصب پیش نیاز ها)(هرجا درخواست [Y/n] شد y را بنویسید و تایید کنید)"
+sudo apt-get update; sudo apt-get upgrade -y --force-yes; sudo apt-get dist-upgrade -y --force-yes; sudo apt-get install gcc-6 python-software-properties software-properties-common python3-dev python3-pip ppa-purge expat libexpat1-dev g++ lua-expat lua-sec lua-socket libreadline6-dev libreadline6 libreadline-dev libconfig-dev libssl-dev lua5.2 liblua5.2-dev libevent-dev make autoconf unzip git redis-server g++ libjansson-dev libpython-dev expat libexpat1-dev libjansson* curl libcurl4-gnutls-dev -y --force-yes 
+sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+sudo ppa-purge
+sudo service redis-server restart
+wget http://luarocks.org/releases/luarocks-2.2.2.tar.gz 
+ tar zxpf luarocks-2.2.2.tar.gz 
+ cd luarocks-2.2.2
+ ./configure; sudo make bootstrap 
+sudo luarocks install luasec 
+sudo luarocks install luasocket 
+sudo luarocks install redis-lua 
+sudo luarocks install lua-term 
+sudo luarocks install serpent
+sudo luarocks install dkjson 
+sudo luarocks install Lua-cURL
+cd ..
+green "
+(درحال دریافت بیس)"
+cd $THIS_DIR
+wget https://valtman.name/files/telegram-cli-1222
+mv telegram-cli-1222 tg
+chmod 777 jovetab
+chmod 777 jovetab.lua
+chmod 777 tg
+chmod 777 bot
+chmod 777 creator.lua
+chmod 777 libs
+chmod 777 manual-creator.lua
+chmod 777 api.lua
+chmod 777 api.sh
+print_logo
+RED='\033[0;31m'
+NC='\033[0m'
+CYAN='\033[0;36m'
+echo -e "${CYAN}پکیج ها باموفقیت نصب شد و ژوپیتر تب آماده راه اندازی شد.با دستور${NC}"
+echo -e "${CYAN}./jovetab create${NC}"
+echo -e "${CYAN}اقدام به ساختن ربات کنید.قدرت برگرفته از #ژوپیتر${NC}"
+logo_play
+exit
+cd $THIS_DIR
+}
+autolaunch() {
+  while true ; do
+    for jovetab in jovetab-*.sh ; do
+      tab="${jovetab%.*}"
+      ltab="${tab/-/ }"
+      tmux kill-session -t $tab
+	  tmux kill-session -t jovetabapi
+tmux kill-session -t jovetabapi2
+      for tg in ~/.telegram-cli/$tab/data/* ; do
+        rm -rf $tg/*
+      done
+      TMUX= tmux new-session -d -s $tab "./$ltab"
+	  api= tmux new-session -d -s jovetabapi "bash api.sh"
+api2= tmux new-session -d -s jovetabapi2 "bash api2.sh"
+      tmux detach -s $tab
+	  tmux detach -s jovetabapi
+    done
+	print_logo
+	logo_play
+    echo -e " \n\e[1;32m ربات های شما با موفقیت توسط آنتی کرش راه اندازی شدند \e[1;34m|JoveTab"
+	echo -e "\e[1;32m All of your bots runned with Anticrash and Autolaunch\n\e[0;39;49m"
+	echo -e "\e[1;32m کافی است تنها پنجره راببندید و با خیال راحت از ربات خود لذت ببرید\n\e[0;39;49m"
+	echo -e "\e[1;32m And Now it's time to close this window and be relax :)\n\e[0;39;49m"
+    sleep 1200
+  done 
+}
+clear() {
+  sudo service redis-server start
+  green '
+       شماره ژوپیترتبی که میخواهید آن را حذف کنید وارد کنید
+'
+  read -rp ' ' ID
+  rm -rf ~/.telegram-cli/jovetab-"$ID"/data
+  rm -rf jovetab-"$ID".lua
+  redis-cli --raw keys "jovetab-"$ID* | xargs redis-cli del
+  red '
+     ژوپیتر تب شماره '$ID' با موفقیت حذف شد
+'
+logo_play
+  exit
+}
+usage() {
+printf "\e[1;36m"
+  cat <<EOF
+راهنمای استفاده از راه انداز ژوپیتر تب
+:گزینه ها
+fix
+بازیابی اطلاعات از اخرین بروزرسانی
+install
+نصب پیش نیاز های ژوپیترتب
+update
+بروزرسانی به آخرین نسخه
+create
+ساخت ربات جدید
+createmanual
+ساخت ربات جدید بصورت دستی
+help
+نمایش این متن
+autolaunch
+راه‌اندازی تمام ربات ها هر 20 دقیقه
+tmux new-session -s script "bash jovetab autolaunch"
+راه اندازی با tmux
+EOF
+printf "%s\n\e[0;39;49m"
+}
+create() {
+  name=jovetab
+  if [[ -e $name.lua ]] ; then
+      i=1
+      while [[ -e $name-$i.lua ]] ; do
+          let i++
+      done
+      name=$name-$i
+  fi
+  lua creator.lua
+    green "
+     ربات شماره "$i" ساخته شد "
+	 red "
+   رباتتان را با دستور زیر اجرا کنید
+"
+white "
+       ./jovetab "$i"
+"
+logo_play
+}
+createmanual() {
+   green '
+        برای ساخت ربات با شماره دلخواه، شماره دلخواه خود را وارد کنید
+'
+  read -rp ' ' ID
+    if [[ -e jovetab-"$ID".lua ]] ; then
+      red '
+     شماره ربات وارد شده از قبل وجود دارد
+'
+logo_play
+      exit
+    else
+      if [[ "$ID" =~ ^[0-9]+$ ]] ; then
+	  lua manual-creator.lua
+        green "
+     ربات شماره "$ID" ساخته شد
+    رباتتان را با دستور زیر اجرا کنید"
+        white "
+             ./jovetab "$ID"
+      "
+	  logo_play
+      else
+        green "
+     شماره ربات را وارد کنید -- عدد
+    "
+	logo_play
+        exit
+      fi
+    fi
+}
+# Reset data to the last update
+fix() {
+  git reset --hard FETCH_HEAD
+  print_logo
+  green '
+  بازیابی اطلاعات به آخرین آپدیت انجام شد
+'
+
+}
+run() {
+chmod 777 steady.sh
+tmux new-session -s autolaunch "bash steady.sh"
+
+}
+api() {
+if [ ! -f ./tg ]; then
+    echo "tg not found"
+    echo "Run $0 install"
+    exit 1
+ fi
+if [ ! $token ]; then
+  echo -e "\e[1;36mToken Not found\e[0m"
+ exit 1
+ fi
+logo_play
+./api.sh
+}
+function print_logo() {
+	green "-------------------------------"
+    white "|     _  BY @ByeCoder    ____ |"
+    red   "|    | |  ___  __    __ |  __||"
+    green "|__  | | / _ \ \ \  / / | |__ |"
+    white "|\ \/ / | |_| | \ \/ /  | |__ |"
+	red   "| \__/   \___/   \__/   |____||"
+	green "-------------------------------"
+	echo -e "\e[31m\t"
+}
+function logo_play() {
+    declare -A txtlogo
+    seconds="0.010"
+	txtlogo[1]="-------------------------------"
+    txtlogo[2]="|     _  BY @ByeCoder    ____ |"
+    txtlogo[3]="|    | |  ___  __    __ |  __||"
+    txtlogo[4]="|__  | | / _ \ \ \  / / | |__ |"
+    txtlogo[5]="|\ \/ / | |_| | \ \/ /  | |__ |"
+	txtlogo[6]="| \__/   \___/   \__/   |____||"
+	txtlogo[7]="-------------------------------"
+    printf "\e[31m\t"
+    for i in ${!txtlogo[@]}; do
+        for x in `seq 0 ${#txtlogo[$i]}`; do
+            printf "${txtlogo[$i]:$x:1}"
+            sleep $seconds
+        done
+        printf "\n\t"
+    done
+    printf "\n"
+	echo -e "\e[0m"
+}
+
+red() {
+  printf '\e[1;31m%s\n\e[0;39;49m' "$@"
+}
+green() {
+  printf '\e[1;32m%s\n\e[0;39;49m' "$@"
+}
+white() {
+  printf '\e[1;37m%s\n\e[0;39;49m' "$@"
+}
+case $1 in
+  update)
+    update
+  ;;
+  create)
+    create
+  ;;
+  install)
+    install
+  ;;
+    clear)
+    clear
+  ;;
+  fix)
+    fix
+  ;;
+    run)
+    run
+  ;;
+      api)
+    api
+  ;;
+  autolaunch)
+    autolaunch
+  ;;
+  help)
+    usage
+  ;;
+  createmanual)
+    createmanual
+  ;;
+  a*)
+    id="${1/a/}"
+    if [ -a "$THIS_DIR"/jovetab-"$id".sh ]; then
+      screen -x -s jovetab-"$id" quit
+      while true ; do
+        screen -s jovetab-"$id" ./jovetab-"$id".sh
+        sleep 10
+      done
+    else
+      usage
+    fi
+  ;;
+  clr)
+    clear
+  ;;
+  *)
+    if [ -a "$THIS_DIR"/jovetab-"$1".sh ]; then
+      ./jovetab-"$1".sh
+    else
+    usage
+    fi
+  ;;
+esac
